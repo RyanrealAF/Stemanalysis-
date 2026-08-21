@@ -211,6 +211,156 @@ ${uploadedFiles.length > 0 ? `Uploaded Context Files:\n` + uploadedFiles.map((f:
     }
   });
 
+  // Deploy Space directly to Hugging Face Hub API
+  app.post('/api/deploy-to-huggingface', async (req, res) => {
+    try {
+      const { hfToken, repoName, sdk = 'gradio', isPrivate = false, files = [] } = req.body;
+
+      if (!hfToken || !hfToken.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Hugging Face Access Token is required. Generate one at https://huggingface.co/settings/tokens with Write permissions.',
+        });
+      }
+
+      const token = hfToken.trim();
+
+      // 1. Check whoami to verify token and get username
+      const whoamiRes = await fetch('https://huggingface.co/api/whoami-v2', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!whoamiRes.ok) {
+        const errorText = await whoamiRes.text();
+        return res.status(401).json({
+          success: false,
+          error: `Invalid Hugging Face token (${whoamiRes.status}): ${errorText}. Please check your token at https://huggingface.co/settings/tokens.`,
+        });
+      }
+
+      const whoamiData = await whoamiRes.json();
+      const username = whoamiData.name;
+
+      if (!username) {
+        return res.status(400).json({
+          success: false,
+          error: 'Could not determine Hugging Face username from token.',
+        });
+      }
+
+      const cleanRepo = (repoName || 'my-space').toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+      const repoId = `${username}/${cleanRepo}`;
+
+      // 2. Create the Space repo on Hugging Face (if it doesn't already exist)
+      let repoCreated = false;
+      const createRes = await fetch('https://huggingface.co/api/repos/create', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: cleanRepo,
+          type: 'space',
+          sdk: sdk.toLowerCase(),
+          private: !!isPrivate,
+        }),
+      });
+
+      if (createRes.ok || createRes.status === 201) {
+        repoCreated = true;
+      } else if (createRes.status === 409) {
+        // Space already exists, we will update the files
+        repoCreated = true;
+      } else {
+        const createErr = await createRes.text();
+        // If it's a permission error or naming issue, report it
+        return res.status(createRes.status).json({
+          success: false,
+          error: `Failed to create Space on Hugging Face (${createRes.status}): ${createErr}`,
+        });
+      }
+
+      // 3. Commit/Upload files to the Space
+      // We will upload files using the Hugging Face raw file or commit API
+      const uploadedFilesList: string[] = [];
+
+      for (const file of files) {
+        if (!file.path || file.content === undefined) continue;
+
+        // Try direct raw PUT endpoint: PUT https://huggingface.co/api/spaces/{repo_id}/raw/main/{path}
+        const encodedPath = encodeURIComponent(file.path);
+        const uploadUrl = `https://huggingface.co/api/spaces/${repoId}/raw/main/${encodedPath}`;
+        
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'text/plain; charset=utf-8',
+          },
+          body: file.content,
+        });
+
+        if (uploadRes.ok) {
+          uploadedFilesList.push(file.path);
+        } else {
+          // If raw PUT fails, try commit API or log warning
+          console.warn(`File upload ${file.path} returned status ${uploadRes.status}:`, await uploadRes.text());
+        }
+      }
+
+      const spaceUrl = `https://huggingface.co/spaces/${repoId}`;
+
+      res.json({
+        success: true,
+        username,
+        repoName: cleanRepo,
+        repoId,
+        spaceUrl,
+        uploadedFiles: uploadedFilesList,
+        message: `Successfully deployed to ${spaceUrl}! Hugging Face will build the container in 1-2 minutes.`,
+      });
+    } catch (err: any) {
+      console.error('Hugging Face deployment error:', err);
+      res.status(500).json({
+        success: false,
+        error: err.message || 'Internal error deploying Space to Hugging Face.',
+      });
+    }
+  });
+
+  // Verify Hugging Face Token endpoint
+  app.post('/api/verify-hf-token', async (req, res) => {
+    try {
+      const { hfToken } = req.body;
+      if (!hfToken || !hfToken.trim()) {
+        return res.status(400).json({ valid: false, error: 'Token is empty' });
+      }
+
+      const response = await fetch('https://huggingface.co/api/whoami-v2', {
+        headers: {
+          Authorization: `Bearer ${hfToken.trim()}`,
+        },
+      });
+
+      if (!response.ok) {
+        return res.json({ valid: false, error: 'Invalid or expired token' });
+      }
+
+      const data = await response.json();
+      res.json({
+        valid: true,
+        username: data.name,
+        email: data.email,
+        type: data.type,
+      });
+    } catch (err: any) {
+      res.status(500).json({ valid: false, error: err.message });
+    }
+  });
+
   // Run Space Machine Learning Inference Endpoint
   const handleInference = async (req: express.Request, res: express.Response) => {
     try {

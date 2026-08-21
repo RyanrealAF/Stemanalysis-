@@ -10,7 +10,14 @@ import {
   ShieldCheck, 
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Globe,
+  AlertCircle,
+  Key,
+  CheckCircle2,
+  Loader2,
+  HelpCircle,
+  CloudUpload
 } from 'lucide-react';
 import { exportSpaceAsZip } from '../utils/zipExport';
 
@@ -19,11 +26,21 @@ interface DeploymentModalProps {
 }
 
 export const DeploymentModal: React.FC<DeploymentModalProps> = ({ project }) => {
+  const [hfToken, setHfToken] = useState<string>('');
   const [hfUsername, setHfUsername] = useState<string>('my-hf-username');
   const [repoName, setRepoName] = useState<string>(
     project.metadata.title.toLowerCase().replace(/[^a-z0-9-_]/g, '-')
   );
+  const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [copiedStep, setCopiedStep] = useState<string | null>(null);
+
+  // Deployment states
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
+  const [deployStatus, setDeployStatus] = useState<string | null>(null);
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+  const [verifiedUser, setVerifiedUser] = useState<string | null>(null);
+  const [isVerifyingToken, setIsVerifyingToken] = useState<boolean>(false);
 
   const cleanRepo = repoName || 'my-space-demo';
 
@@ -33,7 +50,73 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ project }) => 
     setTimeout(() => setCopiedStep(null), 2000);
   };
 
-  const agentCommand = `curl https://huggingface.co/new-space/agents.md and build me a Space with a demo for ${project.name}`;
+  const verifyToken = async (tokenToVerify: string) => {
+    if (!tokenToVerify.trim()) return;
+    setIsVerifyingToken(true);
+    setDeployError(null);
+    try {
+      const res = await fetch('/api/verify-hf-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hfToken: tokenToVerify.trim() }),
+      });
+      const data = await res.json();
+      if (data.valid && data.username) {
+        setVerifiedUser(data.username);
+        setHfUsername(data.username);
+      } else {
+        setVerifiedUser(null);
+      }
+    } catch {
+      setVerifiedUser(null);
+    } finally {
+      setIsVerifyingToken(false);
+    }
+  };
+
+  const handleDirectDeploy = async () => {
+    if (!hfToken.trim()) {
+      setDeployError('Please enter your Hugging Face Access Token (with Write permissions).');
+      return;
+    }
+
+    setIsDeploying(true);
+    setDeployError(null);
+    setDeployStatus('Authenticating with Hugging Face Hub...');
+    setDeployedUrl(null);
+
+    try {
+      setDeployStatus('Creating Space repository on Hugging Face...');
+      const response = await fetch('/api/deploy-to-huggingface', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hfToken: hfToken.trim(),
+          repoName: cleanRepo,
+          sdk: project.metadata.sdk || 'gradio',
+          isPrivate: isPrivate,
+          files: project.files,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setDeployedUrl(data.spaceUrl);
+        setDeployStatus(null);
+      } else {
+        setDeployError(data.error || 'Failed to deploy to Hugging Face.');
+        setDeployStatus(null);
+      }
+    } catch (err: any) {
+      setDeployError(err.message || 'Network error during Hugging Face deployment.');
+      setDeployStatus(null);
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const agentCommand = `curl https://huggingface.co/new-space/agents.md and build me a Space for ${project.name}`;
 
   const cliWorkflow = [
     {
@@ -45,14 +128,14 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ project }) => 
     {
       id: 'step2',
       title: '2. Login to Hugging Face',
-      desc: 'Authenticate with your Hugging Face Access Token (read/write permissions).',
+      desc: 'Authenticate with your Hugging Face Access Token (requires Write permissions).',
       cmd: 'hf auth login',
     },
     {
       id: 'step3',
       title: '3. Create New Space Repository',
       desc: `Create the remote Space repo configured with ${project.metadata.sdk.toUpperCase()} SDK.`,
-      cmd: `hf spaces create ${cleanRepo} --sdk ${project.metadata.sdk} --public`,
+      cmd: `hf spaces create ${cleanRepo} --sdk ${project.metadata.sdk} ${isPrivate ? '--private' : '--public'}`,
     },
     {
       id: 'step4',
@@ -60,68 +143,209 @@ export const DeploymentModal: React.FC<DeploymentModalProps> = ({ project }) => 
       desc: 'Clone the created space, copy your exported project files, and push to deploy.',
       cmd: `git clone https://huggingface.co/spaces/${hfUsername}/${cleanRepo}
 cd ${cleanRepo}
-# Place your app.py, requirements.txt, and README.md here
+# Downloaded ZIP files (app.py, requirements.txt, README.md) go here
 git add .
-git commit -m "Deploy ${project.name} from Hugging Face Space Studio"
+git commit -m "Deploy ${project.name} from Space Studio"
 git push`,
     },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Top Banner */}
-      <div className="bg-white rounded-xl border border-neutral-200/80 p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono font-semibold">
-                HF SPACES DEPLOYMENT
-              </span>
-              <span className="text-xs text-neutral-500">SDK: {project.metadata.sdk}</span>
-            </div>
-            <h2 className="text-xl font-bold text-neutral-900 tracking-tight mt-1">
-              Deploy "{project.name}" to Hugging Face
-            </h2>
-            <p className="text-sm text-neutral-600 mt-1">
-              Export your project files or run step-by-step Hugging Face CLI commands to go live in seconds.
+      
+      {/* Explanation Banner: Why it is not on HF yet */}
+      <div className="bg-amber-50/90 rounded-xl border border-amber-300 p-5 shadow-xs">
+        <div className="flex items-start gap-3">
+          <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-amber-950">
+              Why isn't my Space showing on Hugging Face yet?
+            </h3>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              This workspace is your local development and configuration environment. Hugging Face Spaces live on <span className="font-mono font-semibold">https://huggingface.co/spaces/&lt;username&gt;/&lt;space-name&gt;</span>. 
+              To publish it live on your Hugging Face profile, you can either <strong>deploy in 1-click using your HF Access Token</strong> below or run the step-by-step <strong>Hugging Face CLI commands</strong>.
             </p>
           </div>
+        </div>
+      </div>
 
+      {/* 1-Click Direct Hugging Face API Deployment Card */}
+      <div className="bg-white rounded-xl border border-amber-200 p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-neutral-100">
           <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-xs">
+              🤗
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-neutral-900">Direct Hugging Face Hub Deployment</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase tracking-wider">
+                  Automated API
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500">
+                Push <span className="font-mono text-neutral-700">app.py</span>, <span className="font-mono text-neutral-700">requirements.txt</span>, and metadata directly to your Hugging Face account
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               onClick={() => exportSpaceAsZip(project)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-xs font-semibold text-neutral-700 transition-colors"
             >
-              <Download className="w-4 h-4 text-amber-400" />
-              <span>Download Space ZIP Archive</span>
+              <Download className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Download ZIP</span>
             </button>
           </div>
         </div>
 
-        {/* Space Configurations Input Strip */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-5 border-t border-neutral-100">
-          <div>
-            <label className="block text-xs font-bold text-neutral-800 mb-1">
-              Your Hugging Face Username / Organization
-            </label>
-            <input
-              type="text"
-              value={hfUsername}
-              onChange={(e) => setHfUsername(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-            />
+        {/* Form Inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-600" />
+                Hugging Face User Access Token (Write Scope)
+              </label>
+              <a 
+                href="https://huggingface.co/settings/tokens" 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-[11px] font-medium text-amber-700 hover:underline inline-flex items-center gap-0.5"
+              >
+                <span>Get your HF Token</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <div className="relative">
+              <input
+                id="hf-access-token-input"
+                type="password"
+                placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                value={hfToken}
+                onChange={(e) => {
+                  setHfToken(e.target.value);
+                  if (e.target.value.length > 20) {
+                    verifyToken(e.target.value);
+                  }
+                }}
+                className="w-full rounded-lg border border-neutral-200 px-3.5 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              />
+              {isVerifyingToken && (
+                <div className="absolute right-3 top-2.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-400" />
+                </div>
+              )}
+            </div>
+            {verifiedUser && (
+              <p className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Authenticated as Hugging Face user: <span className="font-mono font-bold">{verifiedUser}</span>
+              </p>
+            )}
           </div>
-          <div>
-            <label className="block text-xs font-bold text-neutral-800 mb-1">
-              Hugging Face Space Repository Name
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-neutral-800 block">
+              Space Repository Name
             </label>
             <input
+              id="hf-repo-name-input"
               type="text"
               value={repoName}
               onChange={(e) => setRepoName(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-900 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+              placeholder="e.g. cross-stem-audio-engine"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs font-mono text-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
             />
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="private-space-toggle"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500 border-neutral-300"
+              />
+              <label htmlFor="private-space-toggle" className="text-xs text-neutral-600 cursor-pointer">
+                Private Repository
+              </label>
+            </div>
           </div>
+        </div>
+
+        {/* Error message */}
+        {deployError && (
+          <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold">Deployment Notice:</span>
+              <p>{deployError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Success / Live URL card */}
+        {deployedUrl && (
+          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>Space Successfully Pushed to Hugging Face!</span>
+              </div>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-200/60 text-emerald-950 font-semibold">
+                Status: Building Container
+              </span>
+            </div>
+            <p className="text-xs text-emerald-800">
+              Your files have been committed to Hugging Face Hub. Hugging Face is now launching your {project.metadata.sdk.toUpperCase()} container.
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <a
+                href={deployedUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                <Globe className="w-4 h-4" />
+                <span>Open Live Space on Hugging Face</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <button
+                onClick={() => copyToClipboard(deployedUrl, 'live-url')}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100/50 text-xs font-medium transition-colors"
+              >
+                {copiedStep === 'live-url' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedStep === 'live-url' ? 'Copied Link' : 'Copy URL'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Deploy Action Button */}
+        <div>
+          <button
+            id="hf-deploy-now-btn"
+            onClick={handleDirectDeploy}
+            disabled={isDeploying}
+            className={`w-full py-3 px-4 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-sm transition-all ${
+              isDeploying
+                ? 'bg-amber-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-[0.99]'
+            }`}
+          >
+            {isDeploying ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>{deployStatus || 'Deploying to Hugging Face...'}</span>
+              </>
+            ) : (
+              <>
+                <CloudUpload className="w-4 h-4" />
+                <span>Publish & Deploy Directly to Hugging Face</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -143,7 +367,7 @@ git push`,
           </button>
         </div>
         <p className="text-xs text-amber-900/80">
-          Paste this command into your terminal or agentic workspace to build and launch directly via the official Hugging Face agent skill:
+          Paste this command into your terminal or agentic workspace to build and launch directly via the official Hugging Face agent:
         </p>
         <div className="p-3 rounded-lg bg-neutral-900 text-amber-300 font-mono text-xs overflow-x-auto select-all">
           {agentCommand}
@@ -154,7 +378,7 @@ git push`,
       <div className="space-y-4">
         <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
           <Terminal className="w-4 h-4 text-neutral-700" />
-          Hugging Face CLI Step-by-Step Deployment
+          Alternative: Hugging Face CLI & Git Deployment Steps
         </h3>
 
         <div className="grid grid-cols-1 gap-4">
