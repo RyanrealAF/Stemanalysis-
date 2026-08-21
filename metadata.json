@@ -1,0 +1,6 @@
+{
+  "name": "Hugging Face Space Studio",
+  "description": "Create, test, and export interactive Hugging Face Spaces and demos for any AI model, research paper, or local folder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
