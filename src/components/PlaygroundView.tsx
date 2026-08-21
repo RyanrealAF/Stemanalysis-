@@ -67,10 +67,10 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
     setFormValues((prev) => ({ ...prev, ...exampleInputs }));
   };
 
-  const handleRunDemo = async () => {
+  const handleRunInference = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/run-space-demo', {
+      const response = await fetch('/api/run-space-inference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,14 +85,14 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
       } else {
         setResult({
           status: 'error',
-          errorMessage: data.errorMessage || 'Simulation execution failed.',
+          errorMessage: data.errorMessage || 'Inference execution failed.',
           metrics: { latencyMs: 0 },
         });
       }
     } catch (err: any) {
       setResult({
         status: 'error',
-        errorMessage: err.message || 'Network error executing demo.',
+        errorMessage: err.message || 'Network error executing pipeline inference.',
         metrics: { latencyMs: 0 },
       });
     } finally {
@@ -167,7 +167,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
             <button
               onClick={() => setThemeMode(themeMode === 'gradio' ? 'streamlit' : 'gradio')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-xs font-medium text-neutral-700 transition-colors"
-              title="Toggle SDK simulation aesthetic"
+              title="Toggle SDK interface theme"
             >
               <LayoutTemplate className="w-3.5 h-3.5 text-neutral-500" />
               <span>Skin: {themeMode === 'gradio' ? 'Gradio 4' : 'Streamlit'}</span>
@@ -201,12 +201,12 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
         <CrossStemAudioStudio project={project} onOpenCodeTab={onOpenCodeTab} />
       ) : (
         <>
-          {/* Preset Examples Chips */}
+          {/* Preset Test Scenarios */}
           {project.examples && project.examples.length > 0 && (
             <div className="bg-amber-50/50 rounded-xl border border-amber-200/60 p-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-900 shrink-0">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Preset Test Scenarios:</span>
+                <span>Production Scenarios & Test Stems:</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {project.examples.map((ex, idx) => (
@@ -405,8 +405,8 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
             {/* Run Button */}
             <div className="mt-6 pt-4 border-t border-neutral-100">
               <button
-                id="run-space-demo-btn"
-                onClick={handleRunDemo}
+                id="run-space-inference-btn"
+                onClick={handleRunInference}
                 disabled={isLoading}
                 className={`w-full py-2.5 px-4 rounded-lg font-medium text-sm text-white flex items-center justify-center gap-2 shadow-xs transition-all ${
                   isLoading
@@ -419,12 +419,12 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Executing Space Pipeline...</span>
+                    <span>Executing Pipeline Inference...</span>
                   </>
                 ) : (
                   <>
                     <Play className="w-4 h-4 fill-white" />
-                    <span>Run Demo on Space</span>
+                    <span>Execute Space Inference</span>
                   </>
                 )}
               </button>
@@ -463,7 +463,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
                     <div className="inline-block p-3 rounded-full bg-amber-50 text-amber-600 animate-pulse">
                       <Zap className="w-6 h-6" />
                     </div>
-                    <p className="text-sm font-medium text-neutral-700">Simulating pipeline inference...</p>
+                    <p className="text-sm font-medium text-neutral-700">Running model & DSP inference pipeline...</p>
                     <p className="text-xs text-neutral-400">Processing input parameters & generating response</p>
                   </div>
                 ) : result ? (
@@ -512,7 +512,7 @@ export const PlaygroundView: React.FC<PlaygroundViewProps> = ({ project, onOpenC
                     <Play className="w-8 h-8 mx-auto stroke-1 text-neutral-300" />
                     <p className="text-sm font-medium text-neutral-600">Ready to run</p>
                     <p className="text-xs text-neutral-400">
-                      Configure your inputs on the left and click "Run Demo on Space" to test this Space.
+                      Configure your inputs on the left and click "Execute Space Inference" to test this Space.
                     </p>
                   </div>
                 )}

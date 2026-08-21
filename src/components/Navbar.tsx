@@ -138,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Play className="w-4 h-4 text-emerald-600" />
-              Live Demo
+              Pipeline Studio
             </button>
             <button
               id="tab-code-btn"

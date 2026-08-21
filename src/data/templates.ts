@@ -3,31 +3,32 @@ import { SpaceProject } from '../types';
 export const TEMPLATE_PROJECTS: SpaceProject[] = [
   {
     id: 'cross-stem-contextual-engine',
-    name: 'Cross-Stem Contextual AI Engine',
+    name: 'Trap & Boom-Bap Cross-Stem AI Engine',
     category: 'local_folder',
     sourceTarget: 'Edge Audio DSP & Spotify Basic Pitch Transcription',
     metadata: {
-      title: 'Cross-Stem Contextual AI Engine',
+      title: 'Trap & Boom-Bap Cross-Stem AI Engine',
       emoji: '🎛️',
-      colorFrom: 'emerald',
-      colorTo: 'cyan',
+      colorFrom: 'red',
+      colorTo: 'amber',
       sdk: 'gradio',
       sdk_version: '4.44.0',
       app_file: 'app.py',
       pinned: true,
-      short_description: 'Zero-cost edge-deployable pipeline processing multi-channel audio stems, cross-stem dependency matrices, and polyphonic Basic Pitch MIDI conversion.',
+      short_description: 'Zero-cost edge pipeline processing Trap 808 sub/kick clashes, Boom-Bap MPC swing matrices, CQT chroma key tracking, and Basic Pitch MIDI conversion.',
       license: 'mit',
-      tags: ['audio-processing', 'librosa', 'basic-pitch', 'midi-transcription', 'cqt-chroma', 'spectral-analysis', 'gradio'],
+      tags: ['trap-production', 'boombap', '808-sub-analysis', 'mpc-swing', 'librosa', 'basic-pitch', 'midi-transcription', 'cqt-chroma', 'gradio'],
       sourceReference: 'Local Folder: /separated_stems',
     },
     paperDetails: {
-      authors: ['Cross-Stem Contextual Audio Research Group', 'Spotify Audio Intelligence'],
+      authors: ['Hip-Hop DSP Intelligence Lab', 'Spotify Audio Research'],
       year: '2024',
-      abstract: 'A zero-cost analytical pipeline for multi-channel stem dependency analysis and polyphonic note event extraction. Dynamically accumulates in-memory master waveform baselines, constructs cross-tensor RMS energy ratios and spectral centroid masking matrices, and extracts Constant-Q Transform chroma vectors for harmonic alignment verification.',
+      abstract: 'A zero-cost analytical pipeline specialized for Trap and Boom-Bap multi-channel stems. Dynamically reconstructs in-memory master mix baselines, computes 808 sub-fundamental vs kick sidechain masking collisions, extracts SP-1200 / MPC unquantized swing timing ratios, and executes polyphonic Basic Pitch MIDI transcription for 808 pitch glides and soul chord chops.',
       keyContributions: [
         'Zero-write in-memory dynamic master waveform reconstruction via vectorized NumPy summation.',
-        'Cross-tensor RMS energy share ratio and spectral centroid masking collision detection.',
-        '12-tone Constant-Q Transform (CQT) chroma profile extraction for harmonic alignment checks.',
+        'Trap 808 Sub (35-55Hz) vs Kick (55-80Hz) spectral masking and phase collision detection.',
+        'Boom-Bap SP-1200 / MPC60 16th micro-timing swing extraction (54%-66% swing).',
+        '12-tone Constant-Q Transform (CQT) chroma profile tracking in dark minor modes (F min, C# min, D min).',
         'Concurrent multi-track polyphonic MIDI transcription powered by Spotify Basic Pitch neural inference.',
       ],
       equations: [
@@ -37,14 +38,14 @@ export const TEMPLATE_PROJECTS: SpaceProject[] = [
           explanation: 'Reconstructs global mix representation directly in RAM without disk I/O bottlenecks.',
         },
         {
-          name: 'Dynamic Energy Share Ratio',
-          formula: 'E_{ratio}(stem) = \\frac{RMS(y_{stem})}{RMS(y_{master}) + 10^{-6}}',
-          explanation: 'Calculates the proportion of dynamic signal power each stem contributes to the global mix.',
+          name: 'Trap 808 Sub Energy Share Ratio',
+          formula: 'E_{ratio}(808) = \\frac{RMS(y_{808})}{RMS(y_{master}) + 10^{-6}}',
+          explanation: 'Measures sub-bass power dominance in the mix baseline.',
         },
         {
-          name: 'Spectral Centroid Frequency Map',
-          formula: 'f_c = \\frac{\\sum_{k} f(k) \\cdot |S(k)|}{\\sum_{k} |S(k)|}',
-          explanation: 'Identifies spectral energy centers to flag frequency collisions and acoustic masking between channels.',
+          name: 'Boom-Bap MPC Swing Ratio',
+          formula: 'S_{ratio} = \\frac{\\Delta t_{even}}{\\Delta t_{odd} + \\Delta t_{even}} \\times 100\\%',
+          explanation: 'Extracts swing percentage between adjacent 16th note transient onsets.',
         },
         {
           name: 'Constant-Q Transform (CQT) Chroma',
@@ -85,36 +86,36 @@ export const TEMPLATE_PROJECTS: SpaceProject[] = [
     ],
     examples: [
       {
-        title: 'Neo-Soul Groove Stems',
+        title: 'Atlanta 808 Trap Anthem',
         inputs: {
-          stem_dir: './separated_stems/neo_soul_groove',
+          stem_dir: './separated_stems/atlanta_trap',
           sample_rate: 22050,
           save_midi: true,
         },
-        description: '4-stem mix (Vocals, 808 Bass, Trap Drums, Rhodes Keys) with cross-channel masking checks.',
+        description: '4-stem Trap mix (808 Sub, Clipped Kick, 1/32 Triplet Hats, Dark Minor Bells) with sub clash analysis.',
       },
       {
-        title: 'Synthwave Midnight Stems',
+        title: '90s East Coast Boom-Bap Classic',
         inputs: {
-          stem_dir: './separated_stems/synthwave_track',
+          stem_dir: './separated_stems/east_coast_boombap',
           sample_rate: 22050,
           save_midi: true,
         },
-        description: 'High-energy electronic stems evaluating saw-bass vs lead synth spectral collision.',
+        description: 'SP-1200 12-bit gritty vinyl break with MPC60 62% swing, upright jazz bass, and soul chord chop.',
       },
     ],
-    overviewMarkdown: `# Cross-Stem Contextual AI Engine
+    overviewMarkdown: `# Trap & Boom-Bap Cross-Stem Contextual AI Engine
 
-A zero-cost ($0 infrastructure budget), edge-deployable pipeline on **Hugging Face Spaces** using **Python, Gradio, Librosa, and Basic Pitch** that processes multi-channel audio stems concurrently, constructs cross-stem dependency matrices, and converts polyphonic audio to structured MIDI.
+A zero-cost ($0 infrastructure budget), edge-deployable pipeline on **Hugging Face Spaces** using **Python, Gradio, Librosa, and Basic Pitch** specialized for **Modern 808 Trap** and **Golden-Age Boom-Bap** multi-channel stems.
 
 ## Architecture Overview
-1. **Ingestion Layer**: Accepts a directory or uploaded multi-channel files containing pre-separated stems (\`.wav\`, \`.flac\`, \`.mp3\`).
-2. **Holistic Reconstruction**: Sums individual stem arrays dynamically (\`master_y = sum(data["y"] for data in stems.values())\`) to reconstruct the master mix baseline waveform in memory without disk write bottlenecks.
-3. **Feature Extraction & Cross-Tensor Analysis**:
-   - Computes **Root Mean Square (RMS)** energy distribution to determine each stem's dynamic share of the master mix.
-   - Evaluates **Spectral Centroid** arrays to map frequency allocation and detect masking conflicts across channels.
-   - Extracts **Constant-Q Transform (CQT) chroma vectors** to calculate harmonic alignment and key-center deviation relative to the global mix baseline.
-4. **Polyphonic Transcription**: Dispatches isolated stems through Spotify's **Basic Pitch** inference engine (\`predict_and_save\`) to extract quantized note events into multi-track MIDI outputs.
+1. **Ingestion Layer**: Accepts a directory containing pre-separated stems (\`808_sub.wav\`, \`kick_punch.wav\`, \`sp1200_break.wav\`, \`melody_chop.wav\`).
+2. **Holistic Reconstruction**: Sums individual stem arrays dynamically in RAM (\`master_y = sum(data["y"] for data in stems.values())\`) without disk write bottlenecks.
+3. **Specialized Hip-Hop Feature Extraction**:
+   - **808 Sub vs Kick Phase & Masking**: Diagnoses fundamental collision (35-50Hz 808 vs 55-80Hz kick) and generates sidechain ducking curves.
+   - **MPC 60 / SP-1200 Swing Extraction**: Measures micro-timing lateness and swing percentages (54%-66%).
+   - **Constant-Q Transform (CQT) Chroma**: Tracks harmonic alignment across dark minor modes (F min, C# min, D min, G min).
+4. **Polyphonic Transcription**: Dispatches isolated stems through Spotify's **Basic Pitch** neural model to extract quantized note events and pitch glides into multi-track MIDI files.
 
 ## Requirements
 \`\`\`

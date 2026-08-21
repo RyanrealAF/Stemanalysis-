@@ -113,8 +113,8 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
               🤗
             </div>
             <div>
-              <h2 className="text-base font-bold text-neutral-900">Create Hugging Face Space Demo</h2>
-              <p className="text-xs text-neutral-500">Generate a live runnable demo for any Model, Research Paper, or Local Folder</p>
+              <h2 className="text-base font-bold text-neutral-900">Create Hugging Face Space</h2>
+              <p className="text-xs text-neutral-500">Generate a production-ready application for any Model, Research Paper, or Local Codebase</p>
             </div>
           </div>
           <button
@@ -136,7 +136,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             }`}
           >
             <Bot className="w-3.5 h-3.5" />
-            AI Model Demo
+            AI Model Space
           </button>
           <button
             onClick={() => { setActiveTab('paper'); setQuery(''); }}
@@ -147,7 +147,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            Research Paper Demo
+            Research Paper Space
           </button>
           <button
             onClick={() => { setActiveTab('local_folder'); setQuery(''); }}
@@ -158,7 +158,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             }`}
           >
             <FolderOpen className="w-3.5 h-3.5" />
-            Local Folder / Code
+            Local Folder / Pipeline
           </button>
           <button
             onClick={() => { setActiveTab('agent_cmd'); setQuery('Build a multi-modal interactive playground with Gradio'); }}
@@ -169,7 +169,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             }`}
           >
             <Terminal className="w-3.5 h-3.5" />
-            HF Agent Prompt
+            HF Agent Command
           </button>
         </div>
 
@@ -385,7 +385,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             ) : (
               <>
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Build Hugging Face Space Demo</span>
+                <span>Build Hugging Face Space</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}
